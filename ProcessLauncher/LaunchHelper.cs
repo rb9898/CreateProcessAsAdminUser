@@ -134,10 +134,11 @@ namespace ProcessLauncher
             string lpCurrentDirectory,
             ref STARTUPINFO lpStartupInfo,
             out PROCESS_INFORMATION lpProcessInformation);
+
         [DllImport("advapi32.dll", SetLastError = true)]
         static extern bool GetTokenInformation(
             IntPtr TokenHandle,
-            TOKEN_INFORMATION_CLASS TokenInformationClass,
+            uint TokenInformationClass,
             IntPtr TokenInformation,
             uint TokenInformationLength,
             out uint ReturnLength);
@@ -166,15 +167,16 @@ namespace ProcessLauncher
                     errorCode = Marshal.GetLastWin32Error();
                     throw new Exception($"DuplicateTokenEx failed with error code : {errorCode}");
                 }
-                uint TokenInfLength = 0;
-                GetTokenInformation(duplicatedUserToken, TOKEN_INFORMATION_CLASS.TokenLinkedToken, IntPtr.Zero, TokenInfLength, out TokenInfLength);
-                TokenInformationLinkedToken = Marshal.AllocHGlobal((IntPtr)TokenInfLength);
-                GetTokenInformation(duplicatedUserToken, TOKEN_INFORMATION_CLASS.TokenLinkedToken, TokenInformationLinkedToken, TokenInfLength, out TokenInfLength);
+                uint tokenInfLength = 0;
+                GetTokenInformation(duplicatedUserToken, (uint)TOKEN_INFORMATION_CLASS.TokenLinkedToken, IntPtr.Zero, tokenInfLength, out tokenInfLength);
+                TokenInformationLinkedToken = Marshal.AllocHGlobal((IntPtr)tokenInfLength);
+                GetTokenInformation(duplicatedUserToken, (uint)TOKEN_INFORMATION_CLASS.TokenLinkedToken, TokenInformationLinkedToken, tokenInfLength, out tokenInfLength);
                 TOKEN_LINKED_TOKEN LT = (TOKEN_LINKED_TOKEN)Marshal.PtrToStructure(TokenInformationLinkedToken, typeof(TOKEN_LINKED_TOKEN));
                 linkedToken = LT.LinkedToken;
-                GetTokenInformation(linkedToken, TOKEN_INFORMATION_CLASS.TokenElevation, IntPtr.Zero, TokenInfLength, out TokenInfLength);
-                TokenInformationIsElevated = Marshal.AllocHGlobal((IntPtr)TokenInfLength);
-                GetTokenInformation(linkedToken, TOKEN_INFORMATION_CLASS.TokenElevation, TokenInformationIsElevated, TokenInfLength, out TokenInfLength);
+                uint linkedTokenInfLength = 0;
+                GetTokenInformation(linkedToken, (uint)TOKEN_INFORMATION_CLASS.TokenElevation, IntPtr.Zero, linkedTokenInfLength, out linkedTokenInfLength);
+                TokenInformationIsElevated = Marshal.AllocHGlobal((IntPtr)linkedTokenInfLength);
+                GetTokenInformation(linkedToken, (uint)TOKEN_INFORMATION_CLASS.TokenElevation, TokenInformationIsElevated, linkedTokenInfLength, out linkedTokenInfLength);
                 TOKEN_ELEVATION TE = (TOKEN_ELEVATION)Marshal.PtrToStructure(TokenInformationIsElevated, typeof(TOKEN_ELEVATION));
                 if (TE.TokenIsElevated != 1)
                 {
